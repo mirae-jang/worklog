@@ -66,7 +66,7 @@ function fillTaskSelects(t={}){const build=()=>{let v=$('taskProject').value,opt
 function openTaskForm(id){if(!data.projects.length){alert('먼저 프로젝트를 추가하세요.');openProjectForm();return}let t=data.tasks.find(x=>x.id===id)||{};$('taskModalTitle').textContent=id?'업무 수정':'업무 추가';$('taskId').value=t.id||'';$('taskTitle').value=t.title||'';$('taskStatus').value=t.status||'진행중';$('taskPriority').value=t.priority||'보통';$('taskPlanned').value=t.planned||'';$('taskDue').value=t.due||'';$('taskNext').value=t.next||'';$('newNextTask').value='';$('taskNote').value='';$('deleteTask').style.visibility=id?'visible':'hidden';$('taskLogHistory').innerHTML=t.logs?.length?`<h3>기존 작업 기록</h3>${t.logs.map(l=>`<div class="log"><time>${esc(l.date)}</time>${esc(l.text)}</div>`).join('')}`:'';fillTaskSelects(t);$('taskDialog').showModal()}
 $('taskForm').onsubmit=e=>{e.preventDefault();let id=$('taskId').value,old=data.tasks.find(t=>t.id===id),note=$('taskNote').value.trim(),newNextTitle=$('newNextTask').value.trim(),taskId=id||uid(),nextTaskId=newNextTitle?uid():$('taskNextTask').value,t={id:taskId,projectId:$('taskProject').value,title:$('taskTitle').value.trim(),status:$('taskStatus').value,priority:$('taskPriority').value,planned:$('taskPlanned').value,due:$('taskDue').value,dependencyId:$('taskDependency').value,nextTaskId,next:$('taskNext').value.trim(),logs:old?.logs||[],updatedAt:new Date().toISOString()};checkpoint();if(note)t.logs.unshift({date:today(),text:note});if(old)Object.assign(old,t);else data.tasks.push(t);if(nextTaskId){let nextTask=data.tasks.find(x=>x.id===nextTaskId);if(nextTask){nextTask.dependencyId=taskId;nextTask.updatedAt=new Date().toISOString()}else data.tasks.push({id:nextTaskId,projectId:t.projectId,title:newNextTitle,status:'예정',priority:t.priority,planned:'',due:'',dependencyId:taskId,nextTaskId:'',next:'',logs:[{date:today(),text:`‘${t.title}’의 다음 업무로 생성됨`}],updatedAt:new Date().toISOString()})}save();$('taskDialog').close();refresh()};function removeTask(id){let task=data.tasks.find(t=>t.id===id);if(!task||!confirm(`‘${task.title}’ 업무를 삭제할까요?`))return;checkpoint();data.tasks=data.tasks.filter(t=>t.id!==id);data.tasks.forEach(t=>{if(t.dependencyId===id)t.dependencyId='';if(t.nextTaskId===id)t.nextTaskId='' });save();if($('taskDialog').open)$('taskDialog').close();refresh()} function deleteTask(){removeTask($('taskId').value)} $('taskClose').onclick=()=>$('taskDialog').close();$('taskCancel').onclick=()=>$('taskDialog').close();$('deleteTask').onclick=deleteTask;
 function renderEventEditor(events=[],projectId=''){let a=tasks(projectId),checks=e=>a.map(t=>`<label><input type="checkbox" value="${t.id}" ${e.taskIds?.includes(t.id)?'checked':''}>${esc(t.title)}</label>`).join('')||'<span class="help">Task를 먼저 추가한 뒤 연결할 수 있습니다.</span>';$('eventEditor').innerHTML=events.map(e=>`<div class="event-row" data-event-id="${e.id}"><div class="event-fields"><input class="event-title" value="${esc(e.title)}" placeholder="예: 검증 완료"><input class="event-date" type="date" value="${e.date||''}"><button type="button" class="outline small remove-event">삭제</button></div><div class="event-task-list">${checks(e)}</div></div>`).join('')} function openProjectForm(id){let p=data.projects.find(x=>x.id===id)||{};$('projectModalTitle').textContent=id?'프로젝트 수정':'프로젝트 추가';$('projectId').value=p.id||'';$('projectName').value=p.name||'';$('projectStart').value=p.start||'';$('projectEnd').value=p.end||'';$('projectDescription').value=p.description||'';$('deleteProject').style.visibility=id?'visible':'hidden';renderEventEditor(p.events||[],p.id);$('projectDialog').showModal()};$('addEvent').onclick=()=>{let p=$('projectId').value;let events=[...$('eventEditor').querySelectorAll('.event-row')].map(row=>({id:row.dataset.eventId,title:row.querySelector('.event-title').value,date:row.querySelector('.event-date').value,taskIds:[...row.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value)}));events.push({id:uid(),title:'',date:'',taskIds:[]});renderEventEditor(events,p)};$('eventEditor').onclick=e=>{if(e.target.closest('.remove-event'))e.target.closest('.event-row').remove()};$('projectForm').onsubmit=e=>{e.preventDefault();let id=$('projectId').value,p=data.projects.find(x=>x.id===id),projectId=id||uid(),events=[...$('eventEditor').querySelectorAll('.event-row')].map(row=>({id:row.dataset.eventId||uid(),title:row.querySelector('.event-title').value.trim(),date:row.querySelector('.event-date').value,taskIds:[...row.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value)})).filter(e=>e.title||e.date),v={id:projectId,name:$('projectName').value.trim(),start:$('projectStart').value,end:$('projectEnd').value,description:$('projectDescription').value.trim(),events};if(v.start&&v.end&&v.end<v.start){alert('프로젝트 종료일은 시작일보다 빠를 수 없습니다.');return}checkpoint();if(p)Object.assign(p,v);else data.projects.push(v);save();$('projectDialog').close();refresh()};function deleteProject(){let id=$('projectId').value;if(id&&confirm('프로젝트와 포함된 업무를 모두 삭제할까요?')){checkpoint();data.projects=data.projects.filter(p=>p.id!==id);data.tasks=data.tasks.filter(t=>t.projectId!==id);save();$('projectDialog').close();refresh()}} $('projectClose').onclick=()=>$('projectDialog').close();$('projectCancel').onclick=()=>$('projectDialog').close();$('deleteProject').onclick=deleteProject;
-function openProjectDetail(id){let p=project(id),a=tasks(id),period=[p.start,p.end].filter(Boolean).join(' ~ ');$('detailTitle').textContent=p.name;$('detailProgress').innerHTML=`<div class="progress"><i style="width:${progress(id)}%"></i></div><div class="project-detail"><span>${progress(id)}% 완료</span><span>${period?`프로젝트 기간: ${period}`:esc(p.description||'')}</span></div>${p.description&&period?`<p class="help" style="margin:8px 0 0">${esc(p.description)}</p>`:''}<div style="margin-top:10px"><button class="outline small" data-edit-project="${id}">프로젝트 수정</button> <button class="primary small" onclick="detailDialog.close();openTaskForm()">+ 업무 추가</button></div>`;renderList('detailTasks',a);let logs=a.flatMap(t=>t.logs.map(l=>({...l,title:t.title}))).sort((x,y)=>y.date.localeCompare(x.date));$('detailLogs').innerHTML=logs.length?logs.map(l=>`<div class="log"><time>${l.date}</time><strong>${esc(l.title)}</strong><br>${esc(l.text)}</div>`).join(''):'<div class="empty">아직 작업 기록이 없습니다.</div>';detailDialog.showModal()}
+function openProjectDetail(id){let p=project(id),a=tasks(id),period=[p.start,p.end].filter(Boolean).join(' ~ ');$('detailTitle').textContent=p.name;$('detailProgress').innerHTML=`<div class="progress"><i style="width:${progress(id)}%"></i></div><div class="project-detail"><span>${progress(id)}% 완료</span><span>${period?`프로젝트 기간: ${period}`:esc(p.description||'')}</span></div>${p.description&&period?`<p class="help" style="margin:8px 0 0">${esc(p.description)}</p>`:''}<div style="margin-top:10px"><button class="outline small" data-edit-project="${id}">프로젝트 수정</button> <button class="primary small" onclick="openTaskFormForProject('${id}')">+ 업무 추가</button></div>`;renderList('detailTasks',a);let logs=a.flatMap(t=>t.logs.map(l=>({...l,title:t.title}))).sort((x,y)=>y.date.localeCompare(x.date));$('detailLogs').innerHTML=logs.length?logs.map(l=>`<div class="log"><time>${l.date}</time><strong>${esc(l.title)}</strong><br>${esc(l.text)}</div>`).join(''):'<div class="empty">아직 작업 기록이 없습니다.</div>';detailDialog.showModal()}
 function backupPayload(){return{version:2,exportedAt:new Date().toISOString(),...data}} function safeId(value,label){if(typeof value!=='string'||!ID_PATTERN.test(value))throw new Error(`${label} 형식이 올바르지 않습니다.`);return value} function safeOptionalId(value,label){return value==null||value===''?'':safeId(value,label)} function safeText(value,label,max,fallback=''){if(value==null)return fallback;if(typeof value!=='string'||value.length>max)throw new Error(`${label} 형식이 올바르지 않습니다.`);return value} function safeDate(value,label){if(value==null||value==='')return '';if(typeof value!=='string'||!DATE_PATTERN.test(value))throw new Error(`${label} 형식이 올바르지 않습니다.`);return value} function safeChoice(value,choices,fallback){if(value==null)return fallback;if(!choices.includes(value))throw new Error('백업에 알 수 없는 업무 설정이 있습니다.');return value} function normalizeBackup(x){if(!x||typeof x!=='object'||!Array.isArray(x.projects)||!Array.isArray(x.tasks)||x.projects.length>500||x.tasks.length>5000)throw new Error('올바른 Worklog 백업 파일이 아닙니다.');let projectIds=new Set(),projects=x.projects.map((p,i)=>{if(!p||typeof p!=='object')throw new Error('프로젝트 형식이 올바르지 않습니다.');let id=safeId(p.id,`프로젝트 ${i+1} ID`);if(projectIds.has(id))throw new Error('프로젝트 ID가 중복되었습니다.');projectIds.add(id);let eventIds=new Set(),events=Array.isArray(p.events)?p.events.map((e,j)=>{let eventId=safeId(e.id,`Event ${j+1} ID`);if(eventIds.has(eventId))throw new Error('Event ID가 중복되었습니다.');eventIds.add(eventId);return{id:eventId,title:safeText(e.title,'Event명',200),date:safeDate(e.date,'Event 날짜'),taskIds:Array.isArray(e.taskIds)?e.taskIds.map(v=>safeId(v,'Event Task ID')):[]}}):[];return{id,name:safeText(p.name,'프로젝트명',200),description:safeText(p.description,'프로젝트 설명',2000),events}}),taskIds=new Set(),tasks=x.tasks.map((t,i)=>{if(!t||typeof t!=='object')throw new Error('업무 형식이 올바르지 않습니다.');let id=safeId(t.id,`업무 ${i+1} ID`);if(taskIds.has(id))throw new Error('업무 ID가 중복되었습니다.');taskIds.add(id);return{id,projectId:safeId(t.projectId,`업무 ${i+1} 프로젝트 ID`),title:safeText(t.title,'업무명',200),status:safeChoice(t.status,['예정','진행중','대기','완료'],'진행중'),priority:safeChoice(t.priority,['높음','보통','낮음'],'보통'),planned:safeDate(t.planned,'예정일'),due:safeDate(t.due,'마감일'),dependencyId:safeOptionalId(t.dependencyId,'선행 업무 ID'),nextTaskId:safeOptionalId(t.nextTaskId,'다음 업무 ID'),next:safeText(t.next,'다음 행동',1000),logs:Array.isArray(t.logs)?t.logs.map((l,j)=>{if(!l||typeof l!=='object')throw new Error('작업 기록 형식이 올바르지 않습니다.');return{date:safeDate(l.date,`작업 기록 ${j+1} 날짜`),text:safeText(l.text,'작업 기록',5000)}}):[],updatedAt:safeText(t.updatedAt,'수정 시간',80,new Date().toISOString())}});return{projects,tasks}} function applyBackup(x){let normalized=normalizeBackup(x);checkpoint();data=normalized;save();refresh()} function openBackup(){$('googleClientId').value=localStorage.getItem(GOOGLE_CLIENT_ID_KEY)||'';backupDialog.showModal()} function downloadBackup(){let blob=new Blob([JSON.stringify(backupPayload(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`업무관리_백업_${today()}.json`;a.click();URL.revokeObjectURL(a.href)} function restoreBackup(e){let f=e.target.files[0];if(!f)return;let reader=new FileReader();reader.onload=()=>{try{let x=JSON.parse(reader.result);if(confirm('현재 데이터를 백업 파일 내용으로 교체할까요?')){applyBackup(x);backupDialog.close();alert('복원이 완료되었습니다.')}}catch(error){alert(error.message||'올바른 Worklog JSON 백업 파일이 아닙니다.')}};reader.readAsText(f);e.target.value=''}
 function saveGoogleClientId(value){let id=value.trim();if(id)localStorage.setItem(GOOGLE_CLIENT_ID_KEY,id);else localStorage.removeItem(GOOGLE_CLIENT_ID_KEY)} function googleClientId(){return(localStorage.getItem(GOOGLE_CLIENT_ID_KEY)||'').trim()} function driveError(error){console.error(error);alert(error.message||'Google Drive 작업 중 문제가 발생했습니다. Google 연결 설정과 로그인 상태를 확인하세요.')} function getDriveToken(){return new Promise((resolve,reject)=>{let clientId=googleClientId();if(!clientId){reject(new Error('먼저 Google OAuth 클라이언트 ID를 입력하세요.'));return}if(!window.google?.accounts?.oauth2){reject(new Error('Google 로그인 도구를 불러오는 중입니다. 잠시 후 다시 시도하세요.'));return}let client=google.accounts.oauth2.initTokenClient({client_id:clientId,scope:DRIVE_SCOPE,callback:r=>r.error?reject(new Error(r.error_description||r.error)):resolve(r.access_token)});client.requestAccessToken({prompt:'consent'})})} async function driveFetch(path,token,options={}){let response=await fetch(`https://www.googleapis.com/drive/v3/${path}`,{...options,headers:{Authorization:`Bearer ${token}`,...(options.headers||{})}});if(!response.ok){let body=await response.json().catch(()=>({}));throw new Error(body.error?.message||`Google Drive 오류 (${response.status})`)}return response} async function findDriveBackup(token){let q=encodeURIComponent(`name = '${DRIVE_FILE_NAME}' and trashed = false`),res=await driveFetch(`files?spaces=appDataFolder&q=${q}&orderBy=modifiedTime desc&pageSize=1&fields=files(id,name,modifiedTime)`,token);return(await res.json()).files?.[0]} function driveMultipart(payload){let boundary=`worklog_${uid().replaceAll('-','')}`,meta={name:DRIVE_FILE_NAME,mimeType:'application/json',parents:['appDataFolder']},body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(payload)}\r\n--${boundary}--`;return{boundary,body}} async function backupToGoogleDrive(){try{let token=await getDriveToken(),existing=await findDriveBackup(token),payload=backupPayload(),response;if(existing){response=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`,{method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(payload)})}else{let multipart=driveMultipart(payload);response=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':`multipart/related; boundary=${multipart.boundary}`},body:multipart.body})}if(!response.ok){let body=await response.json().catch(()=>({}));throw new Error(body.error?.message||`Google Drive 오류 (${response.status})`)}alert('Google Drive에 백업했습니다.')}catch(error){driveError(error)}} async function restoreFromGoogleDrive(){try{let token=await getDriveToken(),file=await findDriveBackup(token);if(!file){throw new Error('Google Drive에 저장된 Worklog 백업을 찾지 못했습니다. 먼저 백업하세요.')}if(!confirm(`Google Drive 백업(${new Date(file.modifiedTime).toLocaleString('ko-KR')})으로 현재 데이터를 교체할까요?`))return;let response=await driveFetch(`files/${file.id}?alt=media`,token),backup=await response.json();applyBackup(backup);backupDialog.close();alert('Google Drive 백업으로 복원했습니다.')}catch(error){driveError(error)}}
 document.addEventListener('click',e=>{let gantt=e.target.closest('[data-toggle-gantt]');if(gantt){ganttExpanded.has(gantt.dataset.toggleGantt)?ganttExpanded.delete(gantt.dataset.toggleGantt):ganttExpanded.add(gantt.dataset.toggleGantt);renderGantt();return}let report=e.target.closest('[data-report-status]');if(report){openReportTasks(report.dataset.reportStatus);return}let done=e.target.closest('[data-toggle-task]');if(done){toggleDone(done.dataset.toggleTask,done.checked);return}let edit=e.target.closest('[data-edit-project]');if(edit){if(detailDialog.open)detailDialog.close();openProjectForm(edit.dataset.editProject);return}let task=e.target.closest('[data-open-task]');if(task){if(reportDialog.open)reportDialog.close();openTaskForm(task.dataset.openTask);return}let projectCard=e.target.closest('[data-open-project]');if(projectCard)openProjectDetail(projectCard.dataset.openProject)});document.addEventListener('keydown',e=>{if(!(e.ctrlKey||e.metaKey))return;let key=e.key.toLowerCase();if(key==='z'){e.preventDefault();e.shiftKey?redo():undo()}else if(key==='y'){e.preventDefault();redo()}});
@@ -108,6 +108,250 @@ const openTaskFormWithScheduledDate=openTaskForm;openTaskForm=function(id){openT
 $('taskForm').onsubmit=function(event){event.preventDefault();let id=$('taskId').value,old=data.tasks.find(task=>task.id===id),note=$('taskNote').value.trim(),newNextTitle=$('newNextTask').value.trim(),taskId=id||uid(),nextTaskId=newNextTitle?uid():$('taskNextTask').value,status=$('taskStatus').value,actualStart=$('taskActualStart').value||old?.actualStart||((status==='진행중'&&old?.status!=='진행중')?today():''),actualEnd=$('taskActualEnd').value||((status==='완료'&&old?.status!=='완료')?today():(old?.actualEnd||''));if(status!=='완료'&&old?.status==='완료'&&!$('taskActualEnd').value)actualEnd='';if(actualStart&&actualEnd&&actualEnd<actualStart){alert('실적 종료일은 시작일보다 빠를 수 없습니다.');return}let task={id:taskId,projectId:$('taskProject').value,title:$('taskTitle').value.trim(),assignee:$('taskAssignee').value.trim(),status,priority:$('taskPriority').value,scheduled:$('taskScheduled').value,planned:$('taskPlanned').value,due:$('taskDue').value,actualStart,actualEnd,dependencyId:$('taskDependency').value,nextTaskId,next:$('taskNext').value.trim(),logs:old?.logs||[],updatedAt:new Date().toISOString(),completedAt:status==='완료'?(old?.completedAt||new Date().toISOString()):''};checkpoint();if(note)task.logs.unshift({date:today(),text:note});if(old)Object.assign(old,task);else data.tasks.push(task);if(nextTaskId){let nextTask=data.tasks.find(item=>item.id===nextTaskId);if(nextTask){nextTask.dependencyId=taskId;nextTask.updatedAt=new Date().toISOString()}else data.tasks.push({id:nextTaskId,projectId:task.projectId,title:newNextTitle,assignee:task.assignee,status:'예정',priority:task.priority,scheduled:'',planned:'',due:'',actualStart:'',actualEnd:'',dependencyId:taskId,nextTaskId:'',next:'',logs:[{date:today(),text:`‘${task.title}’의 다음 업무로 생성됨`}],updatedAt:new Date().toISOString(),completedAt:''})}save();$('taskDialog').close();refresh()};
 taskHTML=function(task){let p=project(task.projectId),nextTask=data.tasks.find(item=>item.id===task.nextTaskId);return `<div class="task-row ${task.status==='완료'?'done':''}" data-open-task="${task.id}"><input class="check" type="checkbox" ${task.status==='완료'?'checked':''} data-toggle-task="${task.id}" aria-label="${esc(task.title)} 완료 여부"><div class="task-main"><div class="task-name">${esc(task.title)}</div><div class="task-meta">${esc(p?.name||'프로젝트 없음')}${task.assignee?` · 담당: ${esc(task.assignee)}`:''}${task.scheduled?` · 예정: ${fmtDate(task.scheduled)}`:''}${task.due?` · 마감: ${fmtDate(task.due)}`:''}${nextTask?` · 다음 업무: ${esc(nextTask.title)}`:''}</div></div><span class="priority p-${task.priority}">${task.priority}</span><span class="status s-${task.status}">${task.status}</span></div>`};
 $('taskStatus').addEventListener('change',function(){if(this.value==='진행중'&&!$('taskActualStart').value)$('taskActualStart').value=today();if(this.value==='완료'){if(!$('taskActualStart').value)$('taskActualStart').value=today();if(!$('taskActualEnd').value)$('taskActualEnd').value=today()}});
-renderCalendar=function(){let year=calendarMonth.getFullYear(),month=calendarMonth.getMonth(),first=new Date(year,month,1),offset=(first.getDay()+6)%7,start=new Date(year,month,1-offset),events={};data.tasks.forEach(task=>{if(task.scheduled)(events[task.scheduled]??=[]).push({task,type:'planned',label:'예정일'});if(task.due)(events[task.due]??=[]).push({task,type:'due',label:'마감일'});if(task.status==='완료'&&task.actualEnd)(events[task.actualEnd]??=[]).push({task,type:'actual',label:'완료일'})});$('calendarMonth').textContent=new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long'}).format(calendarMonth);let weekdays=['월','화','수','목','금','토','일'].map(day=>`<div class="cal-weekday">${day}</div>`).join('');let days=Array.from({length:42},(_,index)=>{let day=new Date(start);day.setDate(start.getDate()+index);let key=dateKey(day),items=(events[key]||[]).map(item=>`<button class="cal-event ${item.type}" title="${esc(item.label)}: ${esc(item.task.title)}" data-open-task="${item.task.id}">${esc(item.task.title)}</button>`).join('');return `<div class="cal-day ${day.getMonth()!==month?'muted':''} ${key===today()?'today':''}"><div class="cal-date">${day.getDate()}</div>${items}</div>`}).join('');$('calendarGrid').innerHTML=weekdays+days};
+renderCalendar=function(){let year=calendarMonth.getFullYear(),month=calendarMonth.getMonth(),first=new Date(year,month,1),offset=(first.getDay()+6)%7,start=new Date(year,month,1-offset),events={};data.tasks.forEach(task=>{let completedOn=task.actualEnd||(task.completedAt||'').slice(0,10)||(task.logs||[]).find(log=>log.text==='업무를 완료로 변경'||log.text==='프로젝트 전체 완료 처리')?.date||'';if(task.status!=='완료'&&task.scheduled)(events[task.scheduled]??=[]).push({task,type:'planned',label:'예정일'});if(task.status!=='완료'&&task.due)(events[task.due]??=[]).push({task,type:'due',label:'마감일'});if(task.status==='완료'&&completedOn)(events[completedOn]??=[]).push({task,type:'actual',label:'완료일'})});$('calendarMonth').textContent=new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long'}).format(calendarMonth);let weekdays=['월','화','수','목','금','토','일'].map(day=>`<div class="cal-weekday">${day}</div>`).join('');let days=Array.from({length:42},(_,index)=>{let day=new Date(start);day.setDate(start.getDate()+index);let key=dateKey(day),items=(events[key]||[]).map(item=>`<button class="cal-event ${item.type}" title="${esc(item.label)}: ${esc(item.task.title)}" data-open-task="${item.task.id}">${esc(item.task.title)}</button>`).join('');return `<div class="cal-day ${day.getMonth()!==month?'muted':''} ${key===today()?'today':''}"><div class="cal-date">${day.getDate()}</div>${items}</div>`}).join('');$('calendarGrid').innerHTML=weekdays+days};
+if(!$('calendarNoDueCard'))$('calendarGrid').closest('.calendar-wrap').insertAdjacentHTML('afterend','<section id="calendarNoDueCard" class="card" style="margin-top:16px"><h2 class="section-title">납기 미설정 Task</h2><div id="calendarNoDueList" class="list"></div></section>');
+const renderCalendarWithNoDueTasks=renderCalendar;renderCalendar=function(){renderCalendarWithNoDueTasks();renderList('calendarNoDueList',data.tasks.filter(task=>!task.due),'납기일이 설정되지 않은 업무가 없습니다.')};
+// 간트 기간은 한쪽만 지정하면 비어 있는 쪽을 자동 범위로 유지합니다.
+try{let savedRange=JSON.parse(localStorage.getItem(GANTT_RANGE_KEY)||'null');if(savedRange?.mode==='partial'&&(savedRange.start||savedRange.end))ganttRangeState={mode:'partial',start:savedRange.start||'',end:savedRange.end||'',autoStart:!savedRange.start,autoEnd:!savedRange.end}}catch{}
+applyGanttRange=function(){let start=$('ganttRangeStart')?.value||'',end=$('ganttRangeEnd')?.value||'';if(!start&&!end){setGanttRangeAuto();return}if(start&&end&&start>end){alert('종료일은 시작일보다 빠를 수 없습니다.');return}ganttRangeState=start&&end?{mode:'manual',start,end}:{mode:'partial',start,end,autoStart:!start,autoEnd:!end};storeGanttRange();renderGantt()};
+const renderGanttWithPartialRange=renderGantt;renderGantt=function(){let partial=ganttRangeState.mode==='partial',saved=partial?{...ganttRangeState}:null;if(partial){let automatic=getAutomaticGanttRange();ganttRangeState={mode:'manual',start:saved.start||dateKey(automatic.start),end:saved.end||dateKey(automatic.end)}}try{renderGanttWithPartialRange()}finally{if(saved)ganttRangeState=saved}if(saved){let startInput=$('ganttRangeStart'),endInput=$('ganttRangeEnd'),mode=$('ganttRangeMode');if(startInput){startInput.value=saved.start;startInput.title=saved.autoStart?'Auto (미완료 일정 기준)':''}if(endInput){endInput.value=saved.end;endInput.title=saved.autoEnd?'Auto (미완료 일정 기준)':''}if(mode)mode.textContent=`기간 설정 · ${saved.autoStart?'시작 Auto':'시작 지정'} / ${saved.autoEnd?'종료 Auto':'종료 지정'}`}};
+const submitTaskWithProjectDetailRefresh=$('taskForm').onsubmit;$('taskForm').onsubmit=function(event){let projectId=$('taskProject').value;submitTaskWithProjectDetailRefresh(event);if(detailDialog.open&&!$('taskDialog').open){detailDialog.close();openProjectDetail(projectId)}};
+const submitTaskWithMemoPersistence=$('taskForm').onsubmit;$('taskForm').onsubmit=function(event){let taskId=$('taskId').value,memo=$('taskMemo').value.trim(),beforeIds=new Set(data.tasks.map(task=>task.id)),projectId=$('taskProject').value;submitTaskWithMemoPersistence(event);if($('taskDialog').open)return;let target=taskId?data.tasks.find(task=>task.id===taskId):data.tasks.find(task=>!beforeIds.has(task.id));if(!target)return;target.memo=memo;save();refresh();if(detailDialog.open){detailDialog.close();openProjectDetail(projectId)}};
+const openTaskFormWithIsolatedMemo=openTaskForm;openTaskForm=function(id){openTaskFormWithIsolatedMemo(id);let task=data.tasks.find(item=>item.id===id);$('taskMemo').value=task?.memo||'';$('taskDialog').dataset.memoTaskId=id||''};
+$('taskForm').onsubmit=function(event){event.preventDefault();let id=$('taskId').value,old=data.tasks.find(task=>task.id===id),note=$('taskNote').value.trim(),newNextTitle=$('newNextTask').value.trim(),taskId=id||uid(),nextTaskId=newNextTitle?uid():$('taskNextTask').value,status=$('taskStatus').value,actualStart=$('taskActualStart').value||old?.actualStart||((status==='진행중'&&old?.status!=='진행중')?today():''),actualEnd=$('taskActualEnd').value||((status==='완료'&&old?.status!=='완료')?today():(old?.actualEnd||''));if(status!=='완료'&&old?.status==='완료'&&!$('taskActualEnd').value)actualEnd='';if(actualStart&&actualEnd&&actualEnd<actualStart){alert('실적 종료일은 시작일보다 빠를 수 없습니다.');return}let task={id:taskId,projectId:$('taskProject').value,title:$('taskTitle').value.trim(),assignee:$('taskAssignee').value.trim(),status,priority:$('taskPriority').value,scheduled:$('taskScheduled').value,planned:$('taskPlanned').value,due:$('taskDue').value,actualStart,actualEnd,memo:$('taskMemo').value.trim(),dependencyId:$('taskDependency').value,nextTaskId,next:$('taskNext').value.trim(),logs:old?.logs||[],updatedAt:new Date().toISOString(),completedAt:status==='완료'?(old?.completedAt||new Date().toISOString()):''};checkpoint();if(note)task.logs.unshift({date:today(),text:note});if(old)Object.assign(old,task);else data.tasks.push(task);if(nextTaskId){let nextTask=data.tasks.find(item=>item.id===nextTaskId);if(nextTask){nextTask.dependencyId=taskId;nextTask.updatedAt=new Date().toISOString()}else data.tasks.push({id:nextTaskId,projectId:task.projectId,title:newNextTitle,assignee:task.assignee,status:'예정',priority:task.priority,scheduled:'',planned:'',due:'',actualStart:'',actualEnd:'',memo:'',dependencyId:taskId,nextTaskId:'',next:'',logs:[{date:today(),text:`‘${task.title}’의 다음 업무로 생성됨`}],updatedAt:new Date().toISOString(),completedAt:''})}save();$('taskDialog').close();refresh();if(detailDialog.open){detailDialog.close();openProjectDetail(task.projectId)}};
+const TASK_MEMOS_KEY='worklog-task-memos-v1';let taskMemos={};try{taskMemos=JSON.parse(localStorage.getItem(TASK_MEMOS_KEY)||'{}')||{}}catch{taskMemos={}};function memoForTask(task){return task?(taskMemos[task.id]??task.memo??''):''}function saveTaskMemos(){localStorage.setItem(TASK_MEMOS_KEY,JSON.stringify(taskMemos))}data.tasks.forEach(task=>{if(Object.hasOwn(taskMemos,task.id))task.memo=taskMemos[task.id];else if(task.memo)taskMemos[task.id]=task.memo});saveTaskMemos();
+const openTaskFormWithTaskMemoStore=openTaskForm;openTaskForm=function(id){openTaskFormWithTaskMemoStore(id);$('taskMemo').value=memoForTask(data.tasks.find(task=>task.id===id));};
+const submitTaskWithTaskMemoStore=$('taskForm').onsubmit;$('taskForm').onsubmit=function(event){let taskId=$('taskId').value,memo=$('taskMemo').value.trim(),beforeIds=new Set(data.tasks.map(task=>task.id)),projectId=$('taskProject').value;submitTaskWithTaskMemoStore(event);if($('taskDialog').open)return;let task=taskId?data.tasks.find(item=>item.id===taskId):data.tasks.find(item=>!beforeIds.has(item.id));if(!task)return;taskMemos[task.id]=memo;task.memo=memo;saveTaskMemos();save();refresh();if(detailDialog.open){detailDialog.close();openProjectDetail(projectId)}};
+const openProjectDetailWithTaskMemoStore=openProjectDetail;openProjectDetail=function(id){openProjectDetailWithTaskMemoStore(id);document.querySelectorAll('[data-task-memos]').forEach(element=>element.remove());let memoTasks=tasks(id).filter(task=>memoForTask(task));$('detailTasks').insertAdjacentHTML('afterend',`<section data-task-memos><h3>Task 메모</h3><div class="task-memo-list">${memoTasks.length?memoTasks.map(task=>`<div class="task-memo"><strong>${esc(task.title)}</strong>${esc(memoForTask(task)).replace(/\n/g,'<br>')}</div>`).join(''):'<div class="empty">입력된 Task 메모가 없습니다.</div>'}</div></section>`)};
+// Task 전용 메모: 기존에 섞일 수 있었던 memo 필드와 분리해 Task ID별로만 관리합니다.
+const TASK_NOTES_KEY='worklog-task-notes-v2';let taskNotes={};try{taskNotes=JSON.parse(localStorage.getItem(TASK_NOTES_KEY)||'{}')||{}}catch{taskNotes={}};let legacyMemoCounts=data.tasks.reduce((counts,task)=>{let value=(task.memo||'').trim();if(value)counts[value]=(counts[value]||0)+1;return counts},{});data.tasks.forEach(task=>{if(!(task.id in taskNotes)&&task.taskNote)taskNotes[task.id]=task.taskNote;else if(!(task.id in taskNotes)&&task.memo&&legacyMemoCounts[task.memo.trim()]===1)taskNotes[task.id]=task.memo});function taskNoteFor(task){return task?taskNotes[task.id]||'':''}function saveTaskNotes(){localStorage.setItem(TASK_NOTES_KEY,JSON.stringify(taskNotes))}saveTaskNotes();
+const normalizeBackupWithTaskNotes=normalizeBackup;normalizeBackup=function(backup){let normalized=normalizeBackupWithTaskNotes(backup);normalized.tasks.forEach((task,index)=>task.taskNote=safeText(backup.tasks[index].taskNote,'Task 메모',5000,''));return normalized};
+const openTaskFormWithTaskNotes=openTaskForm;openTaskForm=function(id){openTaskFormWithTaskNotes(id);$('taskMemo').value=taskNoteFor(data.tasks.find(task=>task.id===id))};
+const submitTaskWithTaskNotes=$('taskForm').onsubmit;$('taskForm').onsubmit=function(event){let taskId=$('taskId').value,note=$('taskMemo').value.trim(),beforeIds=new Set(data.tasks.map(task=>task.id)),projectId=$('taskProject').value;submitTaskWithTaskNotes(event);if($('taskDialog').open)return;let task=taskId?data.tasks.find(item=>item.id===taskId):data.tasks.find(item=>!beforeIds.has(item.id));if(!task)return;taskNotes[task.id]=note;task.taskNote=note;saveTaskNotes();save();refresh();if(detailDialog.open){detailDialog.close();openProjectDetail(projectId)}};
+const openProjectDetailWithTaskNotes=openProjectDetail;openProjectDetail=function(id){openProjectDetailWithTaskNotes(id);document.querySelectorAll('[data-task-memos]').forEach(element=>element.remove());let notedTasks=tasks(id).filter(task=>taskNoteFor(task));$('detailTasks').insertAdjacentHTML('afterend',`<section data-task-memos><h3>Task 메모</h3><div class="task-memo-list">${notedTasks.length?notedTasks.map(task=>`<div class="task-memo"><strong>${esc(task.title)}</strong>${esc(taskNoteFor(task)).replace(/\n/g,'<br>')}</div>`).join(''):'<div class="empty">입력된 Task 메모가 없습니다.</div>'}</div></section>`)};
+// 업무 메모는 수정창을 닫아도 현재 Task ID에 즉시 저장합니다. 작업 기록은 이력 전용입니다.
+let historyInputLabel=$('taskNote').closest('label');if(historyInputLabel?.firstChild?.nodeType===Node.TEXT_NODE)historyInputLabel.firstChild.nodeValue='이력 추가 ';let taskMemoInputLabel=$('taskMemoLabel');if(taskMemoInputLabel?.firstChild?.nodeType===Node.TEXT_NODE)taskMemoInputLabel.firstChild.nodeValue='업무 메모 ';
+const openTaskFormWithImmediateMemo=openTaskForm;openTaskForm=function(id){$('taskMemo').value='';openTaskFormWithImmediateMemo(id);$('taskDialog').dataset.currentTaskId=id||'';$('taskMemo').value=taskNoteFor(data.tasks.find(task=>task.id===id))};
+$('taskMemo').addEventListener('input',function(){let id=$('taskDialog').dataset.currentTaskId;if(!id)return;let task=data.tasks.find(item=>item.id===id);if(!task)return;taskNotes[id]=this.value;task.taskNote=this.value;saveTaskNotes();save()});
+// 업무 수정창에서도 현재 Task의 메모를 이력 입력란 바로 위에서 명확히 확인합니다.
+if($('taskMemoLabel')&&$('taskTitle').closest('label')){let memoLabel=$('taskMemoLabel'),titleLabel=$('taskTitle').closest('label');titleLabel.after(memoLabel);memoLabel.classList.add('full');memoLabel.style.display='grid';let help=memoLabel.querySelector('.help');if(help)help.textContent='이 업무에만 저장되며 Project 화면에는 모아서 표시됩니다.';if(!$('taskMemoPreview'))memoLabel.insertAdjacentHTML('beforebegin','<div id="taskMemoPreview" class="task-memo" style="display:none"><strong>저장된 업무 메모</strong><div></div></div>')}
+function updateTaskMemoPreview(value){let preview=$('taskMemoPreview');if(!preview)return;preview.style.display=value?'block':'none';preview.querySelector('div').innerHTML=esc(value).replace(/\n/g,'<br>')}
+const openTaskFormWithMemoPreview=openTaskForm;openTaskForm=function(id){openTaskFormWithMemoPreview(id);updateTaskMemoPreview($('taskMemo').value)};
+$('taskMemo').addEventListener('input',function(){updateTaskMemoPreview(this.value)});
+// 이력 입력란은 제거하고, 업무 메모 하나만 Task 하단에서 편집합니다.
+$('taskNote').closest('label')?.remove();
+if(!$('taskNote'))$('taskForm').insertAdjacentHTML('afterbegin','<input id="taskNote" type="hidden" value="">');
+$('taskMemoPreview')?.remove();
+if($('taskMemoLabel')){$('taskForm').querySelector('.form-actions').before($('taskMemoLabel'));$('taskMemoLabel').style.display='grid';let help=$('taskMemoLabel').querySelector('.help');if(help)help.textContent='이 업무에만 저장됩니다.'}
+const submitTaskWithFinalMemoSave=$('taskForm').onsubmit;$('taskForm').onsubmit=function(event){let originalId=$('taskId').value,memo=$('taskMemo').value.trim(),beforeIds=new Set(data.tasks.map(task=>task.id));submitTaskWithFinalMemoSave(event);if($('taskDialog').open)return;let savedTask=originalId?data.tasks.find(task=>task.id===originalId):data.tasks.find(task=>!beforeIds.has(task.id));if(!savedTask)return;taskNotes[savedTask.id]=memo;savedTask.taskNote=memo;saveTaskNotes();localStorage.setItem(KEY,JSON.stringify(data));if(detailDialog.open){detailDialog.close();openProjectDetail(savedTask.projectId)}};
+// 화면용 메모 편집기는 Task ID의 저장값을 직접 표시합니다.
+if(!$('taskMemoEditor')){$('taskMemoLabel').style.display='none';$('taskForm').querySelector('.form-actions').insertAdjacentHTML('beforebegin','<label id="taskMemoEditorLabel" class="full">업무 메모 <span class="help">이 업무에만 저장됩니다.</span><textarea id="taskMemoEditor" placeholder="이 업무의 메모를 입력하세요."></textarea></label>')}
+function setTaskMemoEditor(taskId){let task=data.tasks.find(item=>item.id===taskId),value=taskNoteFor(task);$('taskMemoEditor').value=value;$('taskMemo').value=value;$('taskDialog').dataset.currentTaskId=taskId||''}
+const openTaskFormWithDedicatedMemoEditor=openTaskForm;openTaskForm=function(id){openTaskFormWithDedicatedMemoEditor(id);setTaskMemoEditor(id)};
+$('taskMemoEditor').addEventListener('input',function(){let id=$('taskDialog').dataset.currentTaskId,value=this.value;$('taskMemo').value=value;if(!id)return;let task=data.tasks.find(item=>item.id===id);if(!task)return;taskNotes[id]=value;task.taskNote=value;saveTaskNotes();localStorage.setItem(KEY,JSON.stringify(data))});
+// 이전에 섞인 메모와 분리된 v3 저장소. Task ID 외의 값은 메모 조회에 사용하지 않습니다.
+const TASK_NOTES_V3_KEY='worklog-task-notes-v3';let taskNotesV3={};try{taskNotesV3=JSON.parse(localStorage.getItem(TASK_NOTES_V3_KEY)||'{}')||{}}catch{taskNotesV3={}};function taskMemoV3(id){return id?String(taskNotesV3[id]||''):''}function saveTaskNotesV3(){localStorage.setItem(TASK_NOTES_V3_KEY,JSON.stringify(taskNotesV3))}
+const openTaskFormWithV3Memo=openTaskForm;openTaskForm=function(id){openTaskFormWithV3Memo(id);let value=taskMemoV3(id);$('taskDialog').dataset.currentTaskId=id||'';$('taskMemoEditor').value=value;$('taskMemo').value=value};
+$('taskMemoEditor').addEventListener('input',function(){let id=$('taskDialog').dataset.currentTaskId;if(!id)return;taskNotesV3[id]=this.value;saveTaskNotesV3()});
+const submitTaskWithV3Memo=$('taskForm').onsubmit;$('taskForm').onsubmit=function(event){let originalId=$('taskId').value,memo=$('taskMemoEditor').value,beforeIds=new Set(data.tasks.map(task=>task.id)),projectId=$('taskProject').value;$('taskMemo').value=memo;submitTaskWithV3Memo(event);if($('taskDialog').open)return;let savedTask=originalId?data.tasks.find(task=>task.id===originalId):data.tasks.find(task=>!beforeIds.has(task.id));if(!savedTask)return;taskNotesV3[savedTask.id]=memo;saveTaskNotesV3();if(detailDialog.open){detailDialog.close();openProjectDetail(projectId)}};
+const openProjectDetailWithV3Memos=openProjectDetail;openProjectDetail=function(id){openProjectDetailWithV3Memos(id);document.querySelectorAll('[data-task-memos]').forEach(element=>element.remove());let notedTasks=tasks(id).filter(task=>taskMemoV3(task.id));$('detailTasks').insertAdjacentHTML('afterend',`<section data-task-memos><h3>Task 메모</h3><div class="task-memo-list">${notedTasks.length?notedTasks.map(task=>`<div class="task-memo"><strong>${esc(task.title)}</strong>${esc(taskMemoV3(task.id)).replace(/\n/g,'<br>')}</div>`).join(''):'<div class="empty">입력된 Task 메모가 없습니다.</div>'}</div></section>`)};
+// Task 메모는 Task 객체의 memo 한 곳만 원본으로 사용합니다.
+// 이전 버전에서 여러 핸들러가 남아 있던 편집기를 새 노드로 교체해, 과거 리스너를 완전히 분리합니다.
+let cleanMemoEditor=$('taskMemoEditor').cloneNode(true);
+$('taskMemoEditor').replaceWith(cleanMemoEditor);
+
+function getTaskMemo(task){
+  if(!task)return '';
+  return typeof task.memo==='string' ? task.memo : taskMemoV3(task.id);
+}
+
+function setTaskMemo(task,value){
+  task.memo=value;
+  taskNotesV3[task.id]=value;
+  saveTaskNotesV3();
+}
+
+// Task 편집은 단일 핸들러로 관리합니다. 이전의 겹친 메모 래퍼는 호출하지 않습니다.
+openTaskForm=function(id){
+  if(!data.projects.length){alert('먼저 프로젝트를 추가하세요.');openProjectForm();return}
+  let task=data.tasks.find(item=>item.id===id)||{};
+  $('taskModalTitle').textContent=id?'업무 수정':'업무 추가';
+  $('taskId').value=task.id||'';
+  $('taskTitle').value=task.title||'';
+  $('taskStatus').value=task.status||'진행중';
+  $('taskPriority').value=task.priority||'보통';
+  $('taskAssignee').value=task.assignee||'';
+  $('taskScheduled').value=task.scheduled||'';
+  $('taskPlanned').value=task.planned||'';
+  $('taskDue').value=task.due||'';
+  $('taskActualStart').value=task.actualStart||'';
+  $('taskActualEnd').value=task.actualEnd||'';
+  $('taskNext').value=task.next||'';
+  $('newNextTask').value='';
+  $('taskNote').value='';
+  fillTaskSelects(task);
+  let memo=getTaskMemo(task);
+  $('taskMemoEditor').value=memo;
+  $('taskMemo').value=memo;
+  $('taskDialog').dataset.currentTaskId=task.id||'';
+  $('deleteTask').style.visibility=id?'visible':'hidden';
+  $('taskLogHistory').innerHTML=task.logs?.length?`<h3>작업 이력</h3>${task.logs.map(log=>`<div class="log"><time>${esc(log.date)}</time>${esc(log.text)}</div>`).join('')}`:'';
+  if(!$('taskDialog').open)$('taskDialog').showModal();
+};
+
+$('taskForm').onsubmit=function(event){
+  event.preventDefault();
+  let id=$('taskId').value;
+  let old=data.tasks.find(task=>task.id===id);
+  let newNextTitle=$('newNextTask').value.trim();
+  let taskId=id||uid();
+  let nextTaskId=newNextTitle?uid():$('taskNextTask').value;
+  let status=$('taskStatus').value;
+  let actualStart=$('taskActualStart').value||old?.actualStart||((status==='진행중'&&old?.status!=='진행중')?today():'');
+  let actualEnd=$('taskActualEnd').value||((status==='완료'&&old?.status!=='완료')?today():(old?.actualEnd||''));
+  if(actualStart&&actualEnd&&actualEnd<actualStart){alert('실적 종료일은 시작일보다 빠를 수 없습니다.');return}
+  let task={
+    id:taskId, projectId:$('taskProject').value, title:$('taskTitle').value.trim(),
+    assignee:$('taskAssignee').value.trim(), status, priority:$('taskPriority').value,
+    scheduled:$('taskScheduled').value, planned:$('taskPlanned').value, due:$('taskDue').value,
+    actualStart, actualEnd, memo:$('taskMemoEditor').value,
+    dependencyId:$('taskDependency').value, nextTaskId, next:$('taskNext').value.trim(),
+    logs:old?.logs||[], updatedAt:new Date().toISOString(),
+    completedAt:status==='완료'?(old?.completedAt||new Date().toISOString()):''
+  };
+  checkpoint();
+  if(old)Object.assign(old,task);else data.tasks.push(task);
+  if(nextTaskId){
+    let nextTask=data.tasks.find(item=>item.id===nextTaskId);
+    if(nextTask){nextTask.dependencyId=taskId;nextTask.updatedAt=new Date().toISOString()}
+    else data.tasks.push({id:nextTaskId,projectId:task.projectId,title:newNextTitle,assignee:task.assignee,status:'예정',priority:task.priority,scheduled:'',planned:'',due:'',actualStart:'',actualEnd:'',memo:'',dependencyId:taskId,nextTaskId:'',next:'',logs:[],updatedAt:new Date().toISOString(),completedAt:''});
+  }
+  setTaskMemo(old||task,task.memo);
+  save();
+  $('taskDialog').close();
+  refresh();
+  if(detailDialog.open){detailDialog.close();openProjectDetail(task.projectId)}
+};
+
+const openProjectDetailWithCanonicalMemos=openProjectDetail;
+openProjectDetail=function(id){
+  openProjectDetailWithCanonicalMemos(id);
+  document.querySelectorAll('[data-task-memos]').forEach(element=>element.remove());
+  let notedTasks=tasks(id).filter(task=>getTaskMemo(task));
+  $('detailTasks').insertAdjacentHTML('afterend',`<section data-task-memos><h3>Task 메모</h3><div class="task-memo-list">${notedTasks.length?notedTasks.map(task=>`<div class="task-memo"><strong>${esc(task.title)}</strong>${esc(getTaskMemo(task)).replace(/\n/g,'<br>')}</div>`).join(''):'<div class="empty">입력된 Task 메모가 없습니다.</div>'}</div></section>`);
+};
+// 프로젝트별 업무 순서: 프로젝트 안에서만 수동 정렬하며, 선행 업무 연결은 계속 우선합니다.
+const normalizeBackupWithTaskOrder=normalizeBackup;
+normalizeBackup=function(backup){
+  let normalized=normalizeBackupWithTaskOrder(backup);
+  normalized.projects.forEach((projectItem,index)=>{
+    let projectTaskIds=normalized.tasks.filter(task=>task.projectId===projectItem.id).map(task=>task.id);
+    let requestedOrder=Array.isArray(backup.projects[index].taskOrder)?backup.projects[index].taskOrder:[];
+    projectItem.taskSort=safeChoice(backup.projects[index].taskSort,['manual','due','scheduled','priority','status'],'manual');
+    let seen=new Set();
+    projectItem.taskOrder=requestedOrder
+      .filter(id=>typeof id==='string'&&projectTaskIds.includes(id)&&!seen.has(id)&&seen.add(id))
+      .concat(projectTaskIds.filter(id=>!seen.has(id)));
+  });
+  return normalized;
+};
+
+// 이 파일은 기능 확장 코드가 순차 실행되므로, 저장된 순서 정보도 최종 검증 규칙으로 한 번 다시 읽습니다.
+try{
+  let storedData=JSON.parse(localStorage.getItem(KEY));
+  if(storedData)data=normalizeBackup(storedData);
+}catch{}
+
+const tasksBeforeProjectSorting=tasks;
+tasks=function(projectId){
+  let projectItem=project(projectId);
+  let manualOrder=projectItem?.taskOrder||[];
+  let rank=new Map(manualOrder.map((id,index)=>[id,index]));
+  let list=data.tasks.filter(task=>task.projectId===projectId).sort((a,b)=>{
+    let aRank=rank.has(a.id)?rank.get(a.id):Number.MAX_SAFE_INTEGER;
+    let bRank=rank.has(b.id)?rank.get(b.id):Number.MAX_SAFE_INTEGER;
+    return aRank-bRank;
+  });
+  let sortMode=projectItem?.taskSort||'manual';
+  if(sortMode==='manual')return orderTasks(list);
+  let priority={높음:0,보통:1,낮음:2};
+  let status={진행중:0,대기:1,예정:2,완료:3};
+  let dateCompare=(a,b,key)=>(a[key]||'9999-12-31').localeCompare(b[key]||'9999-12-31');
+  return list.sort((a,b)=>{
+    if(sortMode==='due')return dateCompare(a,b,'due')||a.title.localeCompare(b.title,'ko');
+    if(sortMode==='scheduled')return dateCompare(a,b,'scheduled')||a.title.localeCompare(b.title,'ko');
+    if(sortMode==='priority')return priority[a.priority]-priority[b.priority]||a.title.localeCompare(b.title,'ko');
+    return status[a.status]-status[b.status]||a.title.localeCompare(b.title,'ko');
+  });
+};
+
+function setProjectTaskSort(projectId,sortMode){
+  let projectItem=project(projectId);
+  if(!projectItem||!['manual','due','scheduled','priority','status'].includes(sortMode))return;
+  checkpoint();
+  projectItem.taskSort=sortMode;
+  save();
+  refresh();
+  if(detailDialog.open){detailDialog.close();openProjectDetail(projectId)}
+}
+
+function moveProjectTask(projectId,taskId,direction,event){
+  event?.stopPropagation();
+  let projectItem=project(projectId),ordered=tasks(projectId),index=ordered.findIndex(task=>task.id===taskId),target=index+direction;
+  if(!projectItem||index<0||target<0||target>=ordered.length)return;
+  checkpoint();
+  [ordered[index],ordered[target]]=[ordered[target],ordered[index]];
+  projectItem.taskOrder=ordered.map(task=>task.id);
+  save();
+  refresh();
+  if(detailDialog.open){detailDialog.close();openProjectDetail(projectId)}
+}
+
+if(!$('projectTaskSortStyle')){
+  let style=document.createElement('style');
+  style.id='projectTaskSortStyle';
+  style.textContent='.project-task-sort-row{display:flex;align-items:stretch;gap:6px}.project-task-sort-row>.task-row{flex:1}.project-task-sort-controls{display:flex;flex-direction:column;justify-content:center;gap:3px}.project-task-sort-controls button{width:28px;min-height:25px;padding:0;border:0;background:transparent;color:#64748b;font-size:16px;cursor:pointer}.project-task-sort-controls button:disabled{opacity:.25;cursor:default}';
+  document.head.append(style);
+}
+
+const openProjectDetailWithTaskSorting=openProjectDetail;
+openProjectDetail=function(id){
+  openProjectDetailWithTaskSorting(id);
+  let ordered=tasks(id);
+  let sortMode=project(id)?.taskSort||'manual';
+  let controls=sortMode==='manual';
+  let sortSelect=`<label class="project-task-sort" data-project-task-sort>정렬 <select onchange="setProjectTaskSort('${id}',this.value)"><option value="manual" ${sortMode==='manual'?'selected':''}>직접 정렬</option><option value="due" ${sortMode==='due'?'selected':''}>마감일 순</option><option value="scheduled" ${sortMode==='scheduled'?'selected':''}>예정일 순</option><option value="priority" ${sortMode==='priority'?'selected':''}>중요도 순</option><option value="status" ${sortMode==='status'?'selected':''}>상태 순</option></select></label>`;
+  document.querySelectorAll('[data-project-task-sort]').forEach(element=>element.remove());
+  $('detailTasks').previousElementSibling?.insertAdjacentHTML('afterend',sortSelect);
+  $('detailTasks').innerHTML=ordered.length?ordered.map((task,index)=>`<div class="project-task-sort-row">${controls?`<div class="project-task-sort-controls"><button type="button" aria-label="업무 위로 이동" title="위로 이동" onclick="moveProjectTask('${id}','${task.id}',-1,event)" ${index===0?'disabled':''}>↑</button><button type="button" aria-label="업무 아래로 이동" title="아래로 이동" onclick="moveProjectTask('${id}','${task.id}',1,event)" ${index===ordered.length-1?'disabled':''}>↓</button></div>`:''}${taskHTML(task)}</div>`).join(''):'<div class="empty">표시할 업무가 없습니다.</div>';
+};
+
+function openTaskFormForProject(projectId){
+  if(detailDialog.open)detailDialog.close();
+  openTaskForm();
+  if(!$('taskDialog').open)return;
+  fillTaskSelects({projectId});
+  $('taskProject').value=projectId;
+}
+
+// 대시보드의 오늘 할 일은 계획 일정이 아니라 사용자가 지정한 예정일을 기준으로 표시합니다.
+renderDashboard=function(){
+  let active=data.tasks.filter(task=>task.status!=='완료');
+  let over=active.filter(task=>dueDays(task)<0);
+  let due=active.filter(task=>dueDays(task)>=0&&dueDays(task)<=3).sort((a,b)=>dueDays(a)-dueDays(b));
+  let scheduledToday=active.filter(task=>task.scheduled===today());
+  $('todayText').textContent=new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'}).format(new Date());
+  $('stats').innerHTML=[
+    ['오늘 예정',scheduledToday.length],
+    ['진행 중',data.tasks.filter(task=>task.status==='진행중').length],
+    ['마감 임박',due.length+over.length],
+    ['대기',data.tasks.filter(task=>task.status==='대기').length]
+  ].map(item=>`<div class="card"><div class="stat-label">${item[0]}</div><div class="stat-num">${item[1]}</div></div>`).join('');
+  renderList('urgentList',scheduledToday,'오늘 예정된 업무가 없습니다.');
+  renderList('dueList',[...over,...due],'마감 임박 업무가 없습니다.');
+  renderList('doingList',data.tasks.filter(task=>task.status==='진행중'),'진행 중인 업무가 없습니다.');
+  renderList('waitingList',data.tasks.filter(task=>task.status==='대기'),'대기 업무가 없습니다.');
+};
+
 refresh();
 </script></body></html>
