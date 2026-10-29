@@ -38,6 +38,17 @@
 #manualDialog .modal-head{flex:none;padding:14px 20px}
 #manualDialog iframe{display:block;width:100%;flex:1;min-height:0;border:0;background:#f5f7fb}
 @media(max-width:700px){.dashboard-storage-notice{gap:10px;align-items:flex-start}#manualDialog{height:90vh}#openManualButton{padding:7px 8px}}
+
+/* 모바일 프로젝트 상세: 긴 업무명이 목록 너비 안에서 줄바꿈되도록 합니다. */
+@media(max-width:700px){
+  #detailTasks{min-width:0;grid-template-columns:minmax(0,1fr)}
+  #detailTasks .project-task-sort-row{min-width:0;max-width:100%}
+  #detailTasks .project-task-sort-row>.task-row{min-width:0}
+  #detailTasks .project-task-sort-controls{flex-shrink:0}
+  #detailTasks .task-name{white-space:normal;overflow-wrap:anywhere}
+  #detailTasks .task-meta{overflow-wrap:anywhere}
+  #detailTasks .status{flex-shrink:0}
+}
 </style>
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
