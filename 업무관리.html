@@ -49,6 +49,50 @@
   #detailTasks .task-meta{overflow-wrap:anywhere}
   #detailTasks .status{flex-shrink:0}
 }
+
+/* 캘린더를 제외한 모바일 화면: 콘텐츠가 화면 너비 안에서 늘어나고 줄바꿈되도록 조정 */
+@media(max-width:700px){
+  :is(#dashboard,#projects,#tasks,#weekly,#taskDialog,#projectDialog,#detailDialog,#reportDialog,#backupDialog,#manualDialog) :is(.grid,.card,.list,.fields,.task-row,.page-head>*,.filterbar>*,label){min-width:0}
+  :is(#dashboard,#tasks,#reportDialog) .list{grid-template-columns:minmax(0,1fr)}
+  :is(#dashboard,#tasks,#reportDialog) .task-name{white-space:normal;overflow-wrap:anywhere}
+  :is(#dashboard,#tasks,#reportDialog) .task-meta{overflow-wrap:anywhere}
+  :is(#dashboard,#tasks,#reportDialog) .task-row .status{flex-shrink:0}
+  :is(#dashboard,#projects,#tasks,#weekly) .page-head{flex-wrap:wrap}
+  :is(#dashboard,#projects,#tasks,#weekly,#taskDialog,#projectDialog,#detailDialog,#reportDialog,#backupDialog) :is(.section-title,.project-name,.task-memo,.log,.help,.empty,.sub){overflow-wrap:anywhere}
+  #dashboard .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #dashboard .two,#projects .project-grid{grid-template-columns:minmax(0,1fr)}
+  #dashboard .dashboard-storage-text{overflow-wrap:anywhere}
+  #projects .project-name{flex:1}
+  #projects .project-top>span{flex-shrink:0}
+  :is(#projects,#detailDialog) .project-detail{flex-wrap:wrap;gap:4px 12px;overflow-wrap:anywhere}
+  #projects .project-gantt,#projects .gantt-wrap{min-width:0;max-width:100%}
+  #projects .gantt-row .gantt-label{white-space:normal;overflow-wrap:anywhere}
+  #projects .gantt-range-controls label{min-width:0;max-width:100%}
+  :is(#tasks,#backupDialog) .filterbar>:is(input,select,label){max-width:100%;min-width:0}
+  #tasks #search{flex-basis:100%}
+  #tasks #projectFilter,#tasks #sort{flex:1 1 140px;width:0}
+  #tasks .filterbar label:has(#scheduledFilter){flex:1 1 180px}
+  #tasks #scheduledFilter{flex:1;min-width:0;width:0}
+  #weekly .report-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #weekly .calendar-tools{max-width:100%;min-width:0}
+  #weekly .calendar-month{min-width:0;overflow-wrap:anywhere}
+  #weekly .weekly-table{table-layout:fixed}
+  #weekly .weekly-table :is(th,td){padding:8px 4px;overflow-wrap:anywhere}
+  #weekly .weekly-table :is(th,td):first-child{width:40%}
+  :is(#taskDialog,#projectDialog) .fields{grid-template-columns:minmax(0,1fr)}
+  :is(#taskDialog,#projectDialog,#backupDialog) :is(input,select,textarea){min-width:0;max-width:100%}
+  #taskDialog .task-link-pair{grid-template-columns:minmax(0,1fr)}
+  #taskDialog .task-date-row{grid-template-columns:38px minmax(0,1fr) minmax(0,1fr)}
+  #projectDialog .event-fields{grid-template-columns:minmax(0,1fr)}
+  #projectDialog .event-fields .remove-event{justify-self:end}
+  #projectDialog .event-task-list label{max-width:100%;overflow-wrap:anywhere}
+  #projectDialog .event-task-list input{flex-shrink:0}
+  :is(#taskDialog,#projectDialog) .form-actions,
+  :is(#taskDialog,#projectDialog) .form-actions .right{flex-wrap:wrap}
+  :is(#taskDialog,#projectDialog,#detailDialog,#reportDialog,#backupDialog,#manualDialog) .modal-head{gap:8px}
+  :is(#taskDialog,#projectDialog,#detailDialog,#reportDialog,#backupDialog,#manualDialog) .modal-head h2{min-width:0;overflow-wrap:anywhere}
+  :is(#taskDialog,#projectDialog,#detailDialog,#reportDialog,#backupDialog,#manualDialog) .modal-head .close{flex-shrink:0}
+}
 </style>
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
