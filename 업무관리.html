@@ -99,7 +99,7 @@
 <body>
 <header><div class="top"><div class="brand"><span>Worklog</span></div><nav id="nav"><button data-view="dashboard" class="active">Dashboard</button><button data-view="projects">Projects</button><button data-view="tasks">Tasks</button><button data-view="calendar">Calendar</button><button data-view="weekly">Report</button></nav><button class="outline sync-control" onclick="syncWithGoogleDrive()" title="Google Drive 동기화">↻ Sync</button><span class="backup-status" id="lastBackupTime">Sync 없음</span><button id="undoButton" class="outline history-control" onclick="undo()" disabled title="실행 취소 (Ctrl/⌘ + Z)" aria-label="실행 취소"><svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v1"/></svg></button><button id="redoButton" class="outline history-control" onclick="redo()" disabled title="재실행 (Ctrl/⌘ + Y)" aria-label="재실행"><svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0-6 6v1"/></svg></button><button class="primary" onclick="openTaskForm()">+ 업무 추가</button></div></header>
 <main>
-  <section id="dashboard" class="view active"><div class="page-head"><div><h1>Dashboard</h1><p class="sub" id="todayText"></p></div><button class="outline" onclick="openBackup()">백업 · 복원</button></div><div id="stats" class="grid stats"></div><div class="grid two"><div class="card"><h2 class="section-title">오늘 할 일</h2><div id="urgentList" class="list"></div></div><div class="card"><h2 class="section-title">마감 임박</h2><div id="dueList" class="list"></div></div><div class="card"><h2 class="section-title">진행 중</h2><div id="doingList" class="list"></div></div><div class="card"><h2 class="section-title">대기 업무</h2><div id="waitingList" class="list"></div></div></div><div class="card notice dashboard-storage-notice" style="margin-top:16px"><div class="dashboard-storage-text"><strong>내 기기에만 저장됩니다.</strong> 이 앱의 데이터는 현재 브라우저의 로컬 저장소에 보관되며 다른 PC·휴대폰과 자동으로 동기화되지 않습니다. 중요한 내용은 정기적으로 JSON 백업을 내려받아 보관하세요.</div><button type="button" id="openManualButton" class="outline small" aria-haspopup="dialog" aria-controls="manualDialog" onclick="document.getElementById('manualDialog').showModal()">사용 매뉴얼</button></div></section>
+  <section id="dashboard" class="view active"><div class="page-head"><div><h1>Dashboard</h1><p class="sub" id="todayText"></p></div><button class="outline" onclick="openBackup()">백업 · 복원</button></div><div id="stats" class="grid stats"></div><div class="grid two"><div class="card"><h2 class="section-title">오늘 할 일</h2><div id="urgentList" class="list"></div></div><div class="card"><h2 class="section-title">진행 중</h2><div id="doingList" class="list"></div></div><div class="card"><h2 class="section-title">마감 임박</h2><div id="dueList" class="list"></div></div><div class="card"><h2 class="section-title">대기 업무</h2><div id="waitingList" class="list"></div></div></div><div class="card notice dashboard-storage-notice" style="margin-top:16px"><div class="dashboard-storage-text"><strong>내 기기에만 저장됩니다.</strong> 이 앱의 데이터는 현재 브라우저의 로컬 저장소에 보관되며 다른 PC·휴대폰과 자동으로 동기화되지 않습니다. 중요한 내용은 정기적으로 JSON 백업을 내려받아 보관하세요.</div><button type="button" id="openManualButton" class="outline small" aria-haspopup="dialog" aria-controls="manualDialog" onclick="document.getElementById('manualDialog').showModal()">사용 매뉴얼</button></div></section>
   <section id="projects" class="view"><div class="page-head"><div><h1>Projects</h1><p class="sub">카드를 누르면 업무와 진행 사항을 확인하고 수정할 수 있습니다.</p></div><button class="primary" onclick="openProjectForm()">+ 프로젝트 추가</button></div><div class="project-gantt"><div class="legend"><span><i class="planned"></i>계획</span><span><i class="actual"></i>실적</span><span><i class="due"></i>Main Event</span></div><div class="gantt-wrap"><div id="ganttChart" class="gantt"></div></div></div><div id="projectList" class="grid project-grid"></div></section>
   <section id="tasks" class="view"><div class="page-head"><div><h1>Tasks</h1><p class="sub">프로젝트와 관계없이 모든 업무를 한눈에 봅니다.</p></div><div class="filterbar"><button class="outline" onclick="exportTasksCsv()">CSV 내보내기</button><button class="primary" onclick="openTaskForm()">+ 업무 추가</button></div></div><div class="filterbar"><input id="search" placeholder="업무명, 담당자, 다음 행동으로 검색" oninput="renderTasks()"><select id="projectFilter" onchange="renderTasks()"></select><select id="sort" onchange="renderTasks()"><option value="sequence">업무 순서</option><option value="priority">우선순위 순</option><option value="due">마감일 순</option><option value="updated">최근 수정 순</option><option value="project">프로젝트 순</option></select></div><div id="statusFilters" class="filterbar"></div><div id="allTaskList" class="list"></div></section>
   <section id="calendar" class="view"><div class="page-head"><div><h1>Calendar</h1><p class="sub">예정일과 마감일을 한 화면에서 확인합니다.</p></div><div class="calendar-tools"><button class="calendar-nav-button" onclick="moveCalendar(-1)" aria-label="이전 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div id="calendarMonth" class="calendar-month"></div><button class="calendar-nav-button" onclick="moveCalendar(1)" aria-label="다음 달"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div></div><div class="legend"><span><i class="planned"></i>예정일</span><span><i class="due"></i>마감일</span></div><div class="calendar-wrap"><div id="calendarGrid" class="calendar"></div></div></section>
@@ -405,21 +405,28 @@ function openTaskFormForProject(projectId){
 
 // 대시보드의 오늘 할 일은 계획 일정이 아니라 사용자가 지정한 예정일을 기준으로 표시합니다.
 renderDashboard=function(){
-  let active=data.tasks.filter(task=>task.status!=='완료');
-  let over=active.filter(task=>dueDays(task)<0);
-  let due=active.filter(task=>dueDays(task)>=0&&dueDays(task)<=3).sort((a,b)=>dueDays(a)-dueDays(b));
+  // 대시보드의 모든 목록: 예정일 우선, 같은 예정일이면 마감일 순. 미입력 날짜는 뒤로 보냅니다.
+  let compareDates=(a,b)=>(a.scheduled||'9999-12-31').localeCompare(b.scheduled||'9999-12-31')||
+    (a.due||'9999-12-31').localeCompare(b.due||'9999-12-31');
+  let active=data.tasks.filter(task=>task.status!=='완료').sort(compareDates);
+  let weekStart=new Date(today()+'T00:00:00');
+  weekStart.setDate(weekStart.getDate()-(weekStart.getDay()+6)%7);
+  let weekEnd=addDays(weekStart,6),startKey=dateKey(weekStart),endKey=dateKey(weekEnd);
+  let due=active.filter(task=>task.due&&task.due>=startKey&&task.due<=endKey);
   let scheduledToday=active.filter(task=>task.scheduled===today());
+  let doing=active.filter(task=>task.status==='진행중');
+  let waiting=active.filter(task=>task.status==='대기');
   $('todayText').textContent=new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'}).format(new Date());
   $('stats').innerHTML=[
     ['오늘 예정',scheduledToday.length],
-    ['진행 중',data.tasks.filter(task=>task.status==='진행중').length],
-    ['마감 임박',due.length+over.length],
-    ['대기',data.tasks.filter(task=>task.status==='대기').length]
+    ['진행 중',doing.length],
+    ['마감 임박',due.length],
+    ['대기',waiting.length]
   ].map(item=>`<div class="card"><div class="stat-label">${item[0]}</div><div class="stat-num">${item[1]}</div></div>`).join('');
   renderList('urgentList',scheduledToday,'오늘 예정된 업무가 없습니다.');
-  renderList('dueList',[...over,...due],'마감 임박 업무가 없습니다.');
-  renderList('doingList',data.tasks.filter(task=>task.status==='진행중'),'진행 중인 업무가 없습니다.');
-  renderList('waitingList',data.tasks.filter(task=>task.status==='대기'),'대기 업무가 없습니다.');
+  renderList('doingList',doing,'진행 중인 업무가 없습니다.');
+  renderList('dueList',due,'이번 주 마감인 미완료 업무가 없습니다.');
+  renderList('waitingList',waiting,'대기 업무가 없습니다.');
 };
 
 // 상태 필터와 예정일 검색은 화면 상태로만 유지합니다.
