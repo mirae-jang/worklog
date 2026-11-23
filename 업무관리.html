@@ -535,6 +535,66 @@ setInterval(()=>{
 
 
 refresh();
+
+// worklogDropStatusV1: Drop 상태 및 캘린더 표시 규칙
+const normalizeBackupWithDropStatus = normalizeBackup;
+normalizeBackup = function(backup){
+  const normalized = normalizeBackupWithDropStatus(backup);
+  normalized.tasks.forEach((task,index)=>{
+    if(backup?.tasks?.[index]?.status === 'Drop') task.status = 'Drop';
+  });
+  return normalized;
+};
+
+const worklogDropStatusSelect = $('taskStatus');
+if(worklogDropStatusSelect && !Array.from(worklogDropStatusSelect.options).some(option=>option.value==='Drop')){
+  worklogDropStatusSelect.insertAdjacentHTML('beforeend','<option value="Drop">Drop</option>');
+}
+document.head.insertAdjacentHTML('beforeend','<style>.status.s-Drop{background:#e2e8f0;color:#64748b}.cal-event.dropped{background:#e2e8f0;color:#64748b;border-color:#cbd5e1}</style>');
+const worklogCalendarLegend = document.querySelector('#calendar .legend');
+if(worklogCalendarLegend && !worklogCalendarLegend.querySelector('[data-drop-legend]')){
+  worklogCalendarLegend.insertAdjacentHTML('beforeend','<span data-drop-legend><i class="planned" style="background:#94a3b8"></i>Drop 예정일</span>');
+}
+
+function statusFilterButtons(selection,handler){
+  return ['전체','진행중','대기','예정','완료','Drop'].map(status=>{
+    const active = status==='전체' ? selection.size===0 : selection.has(status);
+    return `<button type="button" class="filter-pill ${active?'active':''}" aria-pressed="${active}" onclick="${handler}('${status}')">${status}</button>`;
+  }).join('');
+}
+
+renderCalendar = function(){
+  const year=calendarMonth.getFullYear(), month=calendarMonth.getMonth();
+  const first=new Date(year,month,1), offset=(first.getDay()+6)%7;
+  const start=new Date(year,month,1-offset), events={};
+
+  data.tasks.forEach(task=>{
+    if(task.status==='Drop'){
+      if(task.scheduled)(events[task.scheduled]??=[]).push({task,type:'dropped',label:'Drop 예정일'});
+      return;
+    }
+    const completedOn=task.actualEnd||(task.completedAt||'').slice(0,10)||
+      (task.logs||[]).find(log=>log.text==='업무를 완료로 변경'||log.text==='프로젝트 전체 완료 처리')?.date||'';
+    if(task.status!=='완료'&&task.scheduled)(events[task.scheduled]??=[]).push({task,type:'planned',label:'예정일'});
+    if(task.status!=='완료'&&task.due)(events[task.due]??=[]).push({task,type:'due',label:'마감일'});
+    if(task.status==='완료'&&completedOn)(events[completedOn]??=[]).push({task,type:'actual',label:'완료일'});
+  });
+
+  $('calendarMonth').textContent=new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long'}).format(calendarMonth);
+  const weekdays=['월','화','수','목','금','토','일'].map(day=>`<div class="cal-weekday">${day}</div>`).join('');
+  const days=Array.from({length:42},(_,index)=>{
+    const day=new Date(start);
+    day.setDate(start.getDate()+index);
+    const key=dateKey(day);
+    const items=(events[key]||[]).map(item=>
+      `<button class="cal-event ${item.type}" title="${esc(item.label)}: ${esc(item.task.title)}" data-open-task="${item.task.id}">${esc(item.task.title)}</button>`
+    ).join('');
+    return `<div class="cal-day ${day.getMonth()!==month?'muted':''} ${key===today()?'today':''}"><div class="cal-date">${day.getDate()}</div>${items}</div>`;
+  }).join('');
+  $('calendarGrid').innerHTML=weekdays+days;
+  if($('calendarNoDueList')) renderList('calendarNoDueList',data.tasks.filter(task=>!task.due),'납기일이 설정되지 않은 업무가 없습니다.');
+};
+
 </script><dialog id="manualDialog" aria-labelledby="manualDialogTitle"><div class="modal-head"><h2 id="manualDialogTitle">Worklog 사용 매뉴얼</h2><button type="button" class="close" aria-label="사용 매뉴얼 닫기" autofocus onclick="document.getElementById('manualDialog').close()">×</button></div><iframe title="Worklog 사용 매뉴얼 본문" loading="lazy" srcdoc="&lt;!doctype html&gt;
 &lt;html lang=&quot;ko&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;title&gt;Worklog 사용 매뉴얼&lt;/title&gt;
 &lt;style&gt;
